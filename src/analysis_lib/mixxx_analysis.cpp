@@ -35,7 +35,7 @@ class AnalyzerContext {
 public:
     AnalyzerContext() {
         // Create a minimal in-memory config (not saving to file)
-        m_pConfig = std::make_shared<UserSettings>(QSettings::IniFormat, QSettings::UserScope, "Mixxx", "MixxxAnalysisLib");
+        m_pConfig = UserSettingsPointer(new UserSettings(""));
         
         // Set default preferences for analysis
         // BPM detection settings
