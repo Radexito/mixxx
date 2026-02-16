@@ -6,6 +6,7 @@
 
 #include <QCoreApplication>
 #include <QDebug>
+#include <QSettings>
 #include <QString>
 #include <memory>
 #include <cstring>
@@ -153,7 +154,7 @@ int mixxx_analyze_file(
         
         // Open the audio source
         mixxx::AudioSource::OpenParams openParams;
-        openParams.setChannelCount(2); // Stereo
+        openParams.setChannelCount(mixxx::audio::ChannelCount::stereo());
         
         mixxx::AudioSourcePointer audioSource = 
             SoundSourceProxy(pTrack).openAudioSource(openParams);
