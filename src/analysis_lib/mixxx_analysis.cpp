@@ -164,8 +164,9 @@ int mixxx_analyze_file(
             return -1;
         }
         
-        // Ensure stereo output
-        if (audioSource->getSignalInfo().getChannelCount() % 2) {
+        // Ensure stereo output - wrap non-stereo sources in stereo proxy
+        // This includes mono files and multi-channel files (3+ channels)
+        if (audioSource->getSignalInfo().getChannelCount() != 2) {
             audioSource = std::make_shared<mixxx::AudioSourceStereoProxy>(
                 audioSource, 4096);
         }

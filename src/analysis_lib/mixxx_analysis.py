@@ -17,7 +17,7 @@ import ctypes
 import os
 import platform
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 
 class MixxxAnalysisResult(ctypes.Structure):
@@ -111,7 +111,7 @@ class MixxxAnalyzer:
         # Last resort: try loading by name (system will search standard paths)
         return lib_names[0]
     
-    def analyze_file(self, file_path: str) -> Dict[str, any]:
+    def analyze_file(self, file_path: str) -> Dict[str, Any]:
         """
         Analyze an audio file and return BPM, key, and ReplayGain.
         
