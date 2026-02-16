@@ -3786,6 +3786,10 @@ if(QML)
     endforeach()
   endif()
   set_target_properties(mixxx-qml-lib PROPERTIES AUTOMOC ON)
+  
+  # Enable Position Independent Code for mixxx-qml-lib when linking into shared libraries
+  set_target_properties(mixxx-qml-lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+  
   qt_add_qml_module(mixxx-qml-lib
     URI Mixxx
     VERSION 1.0

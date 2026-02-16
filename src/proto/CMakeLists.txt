@@ -9,6 +9,9 @@ endif()
 
 add_library(mixxx-proto OBJECT)
 
+# Enable Position Independent Code for mixxx-proto when linking into shared libraries
+set_target_properties(mixxx-proto PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 if(TARGET protobuf::libprotobuf-lite)
   target_link_libraries(mixxx-proto PUBLIC protobuf::libprotobuf-lite)
 elseif(TARGET protobuf::libprotobuf)
