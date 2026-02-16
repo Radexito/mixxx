@@ -22,9 +22,8 @@ typedef struct {
     double bpm;
     
     // Musical key as integer (0-24), -1 if detection failed
-    // 0=C major, 1=Db major, ..., 11=B major
-    // 12=A minor, 13=Bb minor, ..., 23=G# minor
-    // 24=invalid/unknown
+    // 0=INVALID, 1=C major, 2=Db major, ..., 12=B major
+    // 13=C minor, 14=C# minor, ..., 24=B minor
     int key;
     
     // Key name as string (e.g., "C", "Am", "F#")

@@ -220,9 +220,9 @@ The library supports the same formats as Mixxx:
 ## Musical Key Values
 
 The `key` field in results uses the following mapping:
-- 0-11: Major keys (C, Db, D, Eb, E, F, F#, G, Ab, A, Bb, B)
-- 12-23: Minor keys (Am, Bbm, Bm, Cm, C#m, Dm, Ebm, Em, Fm, F#m, Gm, G#m)
-- 24: Invalid/Unknown
+- 0: INVALID
+- 1-12: Major keys (C, Db, D, Eb, E, F, F#, G, Ab, A, Bb, B)
+- 13-24: Minor keys (Cm, C#m, Dm, Ebm, Em, Fm, F#m, Gm, G#m, Am, Bbm, Bm)
 - -1: Detection failed
 
 ## Performance Notes

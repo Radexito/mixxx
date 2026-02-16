@@ -44,9 +44,9 @@ public:
         m_pConfig->setValue(ConfigKey(BPM_CONFIG_KEY, BPM_FAST_ANALYSIS_ENABLED), false);
         
         // Key detection settings
-        m_pConfig->setValue(ConfigKey("[Key]", "KeyDetectionEnabled"), true);
-        m_pConfig->setValue(ConfigKey("[Key]", "FastAnalysis"), false);
-        m_pConfig->setValue(ConfigKey("[Key]", "ReanalyzeWhenSettingsChange"), false);
+        m_pConfig->setValue(ConfigKey(KEY_CONFIG_KEY, KEY_DETECTION_ENABLED), true);
+        m_pConfig->setValue(ConfigKey(KEY_CONFIG_KEY, KEY_FAST_ANALYSIS), false);
+        m_pConfig->setValue(ConfigKey(KEY_CONFIG_KEY, KEY_REANALYZE_WHEN_SETTINGS_CHANGE), false);
         
         // ReplayGain settings
         m_pConfig->setValue(ConfigKey("[ReplayGain]", "ReplayGainAnalyserEnabled"), true);
@@ -83,9 +83,6 @@ void chromaticKeyToString(mixxx::track::io::key::ChromaticKey key, char* buffer,
         case mixxx::track::io::key::A_MAJOR: keyText = "A"; break;
         case mixxx::track::io::key::B_FLAT_MAJOR: keyText = "Bb"; break;
         case mixxx::track::io::key::B_MAJOR: keyText = "B"; break;
-        case mixxx::track::io::key::A_MINOR: keyText = "Am"; break;
-        case mixxx::track::io::key::B_FLAT_MINOR: keyText = "Bbm"; break;
-        case mixxx::track::io::key::B_MINOR: keyText = "Bm"; break;
         case mixxx::track::io::key::C_MINOR: keyText = "Cm"; break;
         case mixxx::track::io::key::C_SHARP_MINOR: keyText = "C#m"; break;
         case mixxx::track::io::key::D_MINOR: keyText = "Dm"; break;
@@ -95,6 +92,9 @@ void chromaticKeyToString(mixxx::track::io::key::ChromaticKey key, char* buffer,
         case mixxx::track::io::key::F_SHARP_MINOR: keyText = "F#m"; break;
         case mixxx::track::io::key::G_MINOR: keyText = "Gm"; break;
         case mixxx::track::io::key::G_SHARP_MINOR: keyText = "G#m"; break;
+        case mixxx::track::io::key::A_MINOR: keyText = "Am"; break;
+        case mixxx::track::io::key::B_FLAT_MINOR: keyText = "Bbm"; break;
+        case mixxx::track::io::key::B_MINOR: keyText = "Bm"; break;
         default: keyText = "Unknown"; break;
     }
     
