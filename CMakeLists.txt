@@ -5437,3 +5437,55 @@ if(APPLE AND MACOS_BUNDLE)
   )
   install(SCRIPT "${CMAKE_CURRENT_BINARY_DIR}/BundleInstall.cmake")
 endif()
+
+# ==================================================================================
+# Mixxx Analysis Library (Python-accessible shared library)
+# ==================================================================================
+option(BUILD_ANALYSIS_LIB "Build the Mixxx Analysis Library for Python" ON)
+
+if(BUILD_ANALYSIS_LIB)
+  add_library(
+    mixxx-analysis
+    SHARED
+    src/analysis_lib/mixxx_analysis.cpp
+  )
+  
+  # Set the public header
+  set_target_properties(
+    mixxx-analysis
+    PROPERTIES
+      PUBLIC_HEADER src/analysis_lib/mixxx_analysis.h
+      OUTPUT_NAME "mixxx_analysis"
+      VERSION ${PROJECT_VERSION}
+      SOVERSION ${PROJECT_VERSION_MAJOR}
+  )
+  
+  # Link against mixxx-lib and its dependencies
+  target_link_libraries(
+    mixxx-analysis
+    PRIVATE
+      mixxx-lib
+      Qt${QT_VERSION_MAJOR}::Core
+  )
+  
+  # Include directories
+  target_include_directories(
+    mixxx-analysis
+    PUBLIC
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/analysis_lib>
+      $<INSTALL_INTERFACE:include>
+    PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/src
+  )
+  
+  # Install library and headers
+  install(
+    TARGETS mixxx-analysis
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mixxx
+  )
+  
+  message(STATUS "Mixxx Analysis Library will be built")
+endif()
