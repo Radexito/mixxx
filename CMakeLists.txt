@@ -1811,6 +1811,10 @@ add_library(
   src/controllers/scripting/javascriptplayerproxy.cpp
   src/controllers/scripting/javascriptplayerproxy.h
 )
+
+# Enable Position Independent Code for mixxx-lib when linking into shared libraries
+set_target_properties(mixxx-lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 set(MIXXX_COMMON_PRECOMPILED_HEADER src/util/assert.h)
 set(
   MIXXX_LIB_PRECOMPILED_HEADER
