@@ -5480,6 +5480,24 @@ if(BUILD_ANALYSIS_LIB)
       Qt${QT_VERSION_MAJOR}::Core
   )
   
+  # Allow undefined symbols since mixxx-lib contains UI code we don't use
+  # The analysis library only uses core analysis functionality
+  if(UNIX AND NOT APPLE)
+    # Linux: Allow undefined symbols in shared library
+    target_link_options(
+      mixxx-analysis
+      PRIVATE
+        "LINKER:--allow-shlib-undefined"
+    )
+  elseif(APPLE)
+    # macOS: Allow undefined symbols
+    target_link_options(
+      mixxx-analysis
+      PRIVATE
+        "LINKER:-undefined,dynamic_lookup"
+    )
+  endif()
+  
   # Include directories
   target_include_directories(
     mixxx-analysis
