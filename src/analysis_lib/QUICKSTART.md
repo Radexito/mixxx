@@ -42,6 +42,12 @@ cmake --build build --target mixxx-analysis -j$(nproc)
 # The library will be in: build/libmixxx_analysis.so (or .dylib on macOS)
 ```
 
+**Important**: If you update the repository (e.g., `git pull`), especially if CMakeLists.txt changed, you must reconfigure and rebuild:
+```bash
+cmake -B build -DBUILD_ANALYSIS_LIB=ON  # Reconfigure
+cmake --build build --target mixxx-analysis  # Rebuild
+```
+
 ## Test the Library
 
 ### Using Python (Easiest)
