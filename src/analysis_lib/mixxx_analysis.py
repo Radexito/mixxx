@@ -20,6 +20,11 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 
+class MixxxAnalysisLibraryNotFoundError(OSError):
+    """Raised when the Mixxx Analysis Library cannot be found."""
+    pass
+
+
 class MixxxAnalysisResult(ctypes.Structure):
     """C structure for analysis results"""
     _fields_ = [
@@ -51,16 +56,48 @@ class MixxxAnalyzer:
                          it will search in standard locations.
         
         Raises:
-            OSError: If the library cannot be loaded.
+            MixxxAnalysisLibraryNotFoundError: If the library cannot be found.
+            RuntimeError: If the library loads but analyzer creation fails.
         """
         # Initialize attributes first to ensure they exist even if initialization fails
         self._handle = None
         self._lib = None
         
-        if library_path is None:
-            library_path = self._find_library()
+        # Track search information for better error messages
+        searched_paths = []
         
-        self._lib = ctypes.CDLL(library_path)
+        if library_path is None:
+            library_path, searched_paths = self._find_library_with_paths()
+        
+        try:
+            self._lib = ctypes.CDLL(library_path)
+        except OSError as e:
+            # Provide a helpful error message with build instructions
+            error_msg = [
+                "Could not load the Mixxx Analysis Library.",
+                "",
+                "The library file was not found or could not be loaded.",
+            ]
+            
+            if searched_paths:
+                error_msg.append("")
+                error_msg.append("Searched in the following locations:")
+                for path in searched_paths:
+                    error_msg.append(f"  - {path}")
+            
+            error_msg.extend([
+                "",
+                "To build the library, run from the repository root:",
+                "  cmake -B build -DBUILD_ANALYSIS_LIB=ON",
+                "  cmake --build build --target mixxx-analysis",
+                "",
+                "Or specify the library path explicitly:",
+                "  MixxxAnalyzer('/path/to/libmixxx_analysis.so')",
+                "",
+                f"Original error: {e}",
+            ])
+            
+            raise MixxxAnalysisLibraryNotFoundError("\n".join(error_msg)) from e
         
         # Define function signatures
         self._lib.mixxx_analyzer_create.argtypes = []
@@ -84,8 +121,14 @@ class MixxxAnalyzer:
         if not self._handle:
             raise RuntimeError("Failed to create analyzer context")
     
-    def _find_library(self) -> str:
-        """Find the shared library in standard locations."""
+    def _find_library_with_paths(self):
+        """
+        Find the shared library in standard locations.
+        
+        Returns:
+            Tuple of (library_path, searched_paths) where searched_paths is a list
+            of all locations that were checked.
+        """
         system = platform.system()
         
         if system == "Linux":
@@ -110,14 +153,23 @@ class MixxxAnalyzer:
             Path("/usr/lib"),
         ]
         
+        searched = []
         for search_path in search_paths:
             for lib_name in lib_names:
                 lib_path = search_path / lib_name
+                searched.append(str(lib_path))
                 if lib_path.exists():
-                    return str(lib_path)
+                    return str(lib_path), searched
         
         # Last resort: try loading by name (system will search standard paths)
-        return lib_names[0]
+        # Add this to the searched list for informational purposes
+        searched.append(f"{lib_names[0]} (system library paths)")
+        return lib_names[0], searched
+    
+    def _find_library(self) -> str:
+        """Find the shared library in standard locations (legacy method)."""
+        library_path, _ = self._find_library_with_paths()
+        return library_path
     
     def analyze_file(self, file_path: str) -> Dict[str, Any]:
         """
