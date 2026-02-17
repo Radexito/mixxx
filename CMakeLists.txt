@@ -4544,6 +4544,9 @@ add_library(
   # lib/qm-dsp/thread/Thread.cpp
 )
 
+# Enable Position Independent Code for QueenMaryDsp when linking into shared libraries
+set_target_properties(QueenMaryDsp PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 target_compile_definitions(QueenMaryDsp PRIVATE kiss_fft_scalar=double)
 if(UNIX)
   target_compile_definitions(QueenMaryDsp PRIVATE USE_PTHREADS)
