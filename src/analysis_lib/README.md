@@ -235,9 +235,35 @@ The `key` field in results uses the following mapping:
 ## Troubleshooting
 
 ### Library Not Found
-If Python can't find the library, specify the path explicitly:
+
+The Python wrapper automatically searches for the library in several locations:
+1. Current working directory
+2. Directory containing the Python wrapper (`src/analysis_lib/`)
+3. Repository root build directory (`build/`)
+4. Alternative build location (`src/analysis_lib/build/`)
+5. System library paths (`/usr/local/lib`, `/usr/lib`)
+
+**If building in the repository root** (standard CMake build):
+```bash
+cmake -B build -DBUILD_ANALYSIS_LIB=ON
+cmake --build build --target mixxx-analysis
+
+# The library will be found automatically in build/
+python src/analysis_lib/examples/analyze_example.py /path/to/audio.mp3
+```
+
+**If the library is still not found**, specify the path explicitly:
 ```python
 analyzer = MixxxAnalyzer('/path/to/libmixxx_analysis.so')
+```
+
+Or set the library path environment variable:
+```bash
+# Linux
+export LD_LIBRARY_PATH=/path/to/mixxx/build:$LD_LIBRARY_PATH
+
+# macOS
+export DYLD_LIBRARY_PATH=/path/to/mixxx/build:$DYLD_LIBRARY_PATH
 ```
 
 ### Analysis Fails

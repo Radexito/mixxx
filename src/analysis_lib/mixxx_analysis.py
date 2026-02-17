@@ -94,10 +94,14 @@ class MixxxAnalyzer:
             raise OSError(f"Unsupported platform: {system}")
         
         # Search in common locations
+        # The wrapper is in src/analysis_lib/, so repository root is two levels up
+        repo_root = Path(__file__).parent.parent.parent
+        
         search_paths = [
             Path.cwd(),  # Current directory
-            Path(__file__).parent,  # Same directory as this script
-            Path(__file__).parent / "build",  # Build directory
+            Path(__file__).parent,  # Same directory as this script (src/analysis_lib)
+            repo_root / "build",  # Repository root build directory
+            Path(__file__).parent / "build",  # src/analysis_lib/build (for alternative setups)
             Path("/usr/local/lib"),
             Path("/usr/lib"),
         ]

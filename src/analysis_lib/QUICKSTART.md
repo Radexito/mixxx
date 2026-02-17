@@ -47,12 +47,12 @@ cmake --build build --target mixxx-analysis -j$(nproc)
 ### Using Python (Easiest)
 
 ```bash
-# Copy or symlink the library to the examples directory
-ln -s $(pwd)/build/libmixxx_analysis.so src/analysis_lib/examples/
-
-# Run the Python example
+# The Python wrapper automatically finds the library in the build/ directory
+# Just run the example directly from the repository root:
 python3 src/analysis_lib/examples/analyze_example.py /path/to/your/music.mp3
 ```
+
+**Note**: The library is automatically discovered in the `build/` directory. No copying or symlinking needed!
 
 ### Using C
 
@@ -73,7 +73,8 @@ LD_LIBRARY_PATH=build ./analyze_example /path/to/your/music.mp3
 ```python
 from mixxx_analysis import MixxxAnalyzer
 
-with MixxxAnalyzer(library_path="./build/libmixxx_analysis.so") as analyzer:
+# Library is found automatically in build/ directory
+with MixxxAnalyzer() as analyzer:
     result = analyzer.analyze_file("song.mp3")
     print(f"BPM: {result['bpm']:.1f}")
     print(f"Key: {result['key_name']}")
@@ -99,25 +100,40 @@ Analysis complete!
 
 ### Library Not Found
 
-If you get "library not found" errors:
+**Good news**: The Python wrapper now automatically searches the `build/` directory!
 
+If you're running examples from the repository root after building with:
+```bash
+cmake -B build -DBUILD_ANALYSIS_LIB=ON
+cmake --build build --target mixxx-analysis
+```
+
+The library should be found automatically. Just run:
+```bash
+python3 src/analysis_lib/examples/analyze_example.py /path/to/music.mp3
+```
+
+**If you still get "library not found" errors**, you can:
+
+1. Specify the path explicitly:
+```python
+from mixxx_analysis import MixxxAnalyzer
+analyzer = MixxxAnalyzer("/full/path/to/libmixxx_analysis.so")
+```
+
+2. Set the library path environment variable:
 ```bash
 # Linux: Set LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=/path/to/mixxx/build:$LD_LIBRARY_PATH
 
 # macOS: Set DYLD_LIBRARY_PATH
 export DYLD_LIBRARY_PATH=/path/to/mixxx/build:$DYLD_LIBRARY_PATH
-
-# Or install the library system-wide
-sudo cmake --install build
 ```
 
-### Python Can't Find Library
-
-Either:
-1. Specify the path explicitly: `MixxxAnalyzer("/full/path/to/libmixxx_analysis.so")`
-2. Copy the library to the same directory as your Python script
-3. Install it system-wide with `sudo cmake --install build`
+3. Install the library system-wide:
+```bash
+sudo cmake --install build
+```
 
 ### Missing Dependencies
 
