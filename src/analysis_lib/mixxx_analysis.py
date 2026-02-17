@@ -53,6 +53,10 @@ class MixxxAnalyzer:
         Raises:
             OSError: If the library cannot be loaded.
         """
+        # Initialize attributes first to ensure they exist even if initialization fails
+        self._handle = None
+        self._lib = None
+        
         if library_path is None:
             library_path = self._find_library()
         
