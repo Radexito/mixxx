@@ -5484,17 +5484,18 @@ if(BUILD_ANALYSIS_LIB)
   # The analysis library only uses core analysis functionality
   if(UNIX AND NOT APPLE)
     # Linux: Allow undefined symbols in shared library
+    # Use explicit -Wl, format for better compatibility
     target_link_options(
       mixxx-analysis
       PRIVATE
-        "LINKER:--allow-shlib-undefined"
+        "-Wl,--allow-shlib-undefined"
     )
   elseif(APPLE)
     # macOS: Allow undefined symbols
     target_link_options(
       mixxx-analysis
       PRIVATE
-        "LINKER:-undefined,dynamic_lookup"
+        "-Wl,-undefined,dynamic_lookup"
     )
   endif()
   
