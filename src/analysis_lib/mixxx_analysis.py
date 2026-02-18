@@ -70,7 +70,12 @@ class MixxxAnalyzer:
             library_path, searched_paths = self._find_library_with_paths()
         
         try:
-            self._lib = ctypes.CDLL(library_path)
+            # Use RTLD_LAZY to defer symbol resolution until symbols are actually used.
+            # This is necessary because mixxx-lib contains UI code that creates undefined
+            # symbols, but those code paths are never executed by the analysis library.
+            # RTLD_LAZY = 1 on Linux/Unix (defers symbol resolution)
+            RTLD_LAZY = 0x00001
+            self._lib = ctypes.CDLL(library_path, mode=RTLD_LAZY)
         except OSError as e:
             # Provide a helpful error message with build instructions
             error_msg = [
