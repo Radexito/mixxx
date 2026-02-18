@@ -194,6 +194,65 @@ Since this PR focuses on creating the library infrastructure, comprehensive test
    - Error handling works correctly
    - Documentation matches implementation
 
+## Technical Challenges and Solutions
+
+### Challenge 1: Undefined Symbol Errors
+
+**Problem**: The analysis library links against `mixxx-lib`, which is a monolithic static library containing both core analysis code and UI widgets. UI components like `SidebarModel` are included but their dependencies (QtWidgets) are not linked, creating undefined symbols.
+
+**Attempted Solutions**:
+1. ❌ `LINKER:--allow-shlib-undefined` - CMake compatibility issues
+2. ❌ `-Wl,--allow-shlib-undefined` - Wrong meaning (for dependencies, not output)
+3. ⚠️ `-Wl,--unresolved-symbols=ignore-all` - Fixes link-time but not runtime
+
+**Final Solution**: Two-part fix required:
+
+**Part 1: Link Time**
+```cmake
+target_link_options(mixxx-analysis PRIVATE "-Wl,--unresolved-symbols=ignore-all")
+```
+- Tells linker to ignore unresolved symbols when creating the shared library
+- Prevents build failures
+
+**Part 2: Runtime (Critical!)**
+```python
+RTLD_LAZY = 0x00001  # Defer symbol resolution until first use
+self._lib = ctypes.CDLL(library_path, mode=RTLD_LAZY)
+```
+- Uses lazy binding when loading the library with `dlopen()`
+- Symbols are only resolved when actually called
+- Since UI code is never called, undefined symbols never cause errors
+- Standard Unix/Linux practice for plugins with optional dependencies
+
+**Why Both Are Needed**:
+- `--unresolved-symbols=ignore-all`: Prevents linker from failing at **build time**
+- `RTLD_LAZY`: Prevents dlopen() from failing at **runtime**
+
+From `man dlopen`:
+> `RTLD_LAZY`: Perform lazy binding. Only resolve symbols as the code that references them is executed.
+
+This is safe because:
+- The API surface is controlled (only analysis functions exposed)
+- UI code paths are architecturally separated
+- Any accidental UI call would crash immediately (easy to catch in testing)
+
+### Challenge 2: Position Independent Code (PIC)
+
+**Problem**: When creating a shared library, all statically-linked code must be compiled with `-fPIC`. The initial configuration did not set PIC for `mixxx-lib` and its dependencies.
+
+**Solution**: Enable PIC for all static libraries that are linked:
+```cmake
+set_target_properties(mixxx-lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(mixxx-proto PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(mixxx-qml-lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(QueenMaryDsp PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(shout_mixxx PROPERTIES POSITION_INDEPENDENT_CODE ON)
+# For external project:
+ExternalProject_Add(libdjinterop CMAKE_ARGS -DCMAKE_POSITION_INDEPENDENT_CODE=ON ...)
+```
+
+Total: 6 libraries required PIC (5 internal + 1 external project)
+
 ## Performance Characteristics
 
 - **Analysis Time**: 2-10 seconds per track (depending on duration and CPU)
