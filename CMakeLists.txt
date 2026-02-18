@@ -5483,12 +5483,12 @@ if(BUILD_ANALYSIS_LIB)
   # Allow undefined symbols since mixxx-lib contains UI code we don't use
   # The analysis library only uses core analysis functionality
   if(UNIX AND NOT APPLE)
-    # Linux: Allow undefined symbols in shared library
-    # Use explicit -Wl, format for better compatibility
+    # Linux: Ignore unresolved symbols in the output shared library
+    # This is needed because mixxx-lib contains UI code that we don't use
     target_link_options(
       mixxx-analysis
       PRIVATE
-        "-Wl,--allow-shlib-undefined"
+        "-Wl,--unresolved-symbols=ignore-all"
     )
   elseif(APPLE)
     # macOS: Allow undefined symbols
