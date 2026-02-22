@@ -70,12 +70,15 @@ class MixxxAnalyzer:
             library_path, searched_paths = self._find_library_with_paths()
         
         try:
-            # Use RTLD_LAZY to defer symbol resolution until symbols are actually used.
+            # Use RTLD_LAZY | RTLD_GLOBAL for flexible symbol resolution.
             # This is necessary because mixxx-lib contains UI code that creates undefined
             # symbols, but those code paths are never executed by the analysis library.
-            # os.RTLD_LAZY defers symbol resolution (Linux/Unix)
-            # On Windows, this flag doesn't exist but undefined symbols are handled differently
-            load_mode = getattr(os, 'RTLD_LAZY', ctypes.DEFAULT_MODE if hasattr(ctypes, 'DEFAULT_MODE') else 0)
+            # - RTLD_LAZY: Defer symbol resolution until first use
+            # - RTLD_GLOBAL: Make symbols available for resolution (helps with undefined symbols)
+            # On Windows, these flags don't exist but undefined symbols are handled differently
+            lazy_mode = getattr(os, 'RTLD_LAZY', 0)
+            global_mode = getattr(os, 'RTLD_GLOBAL', 0)
+            load_mode = lazy_mode | global_mode if lazy_mode else 0
             self._lib = ctypes.CDLL(library_path, mode=load_mode)
         except OSError as e:
             # Provide a helpful error message with build instructions
