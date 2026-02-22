@@ -216,13 +216,20 @@ target_link_options(mixxx-analysis PRIVATE "-Wl,--unresolved-symbols=ignore-all"
 
 **Part 2: Runtime (Critical!)**
 ```python
-RTLD_LAZY = 0x00001  # Defer symbol resolution until first use
-self._lib = ctypes.CDLL(library_path, mode=RTLD_LAZY)
+import os
+
+# Use the actual OS constant - not a hardcoded integer!
+load_mode = getattr(os, 'RTLD_LAZY', 0)  # Falls back to 0 on Windows
+self._lib = ctypes.CDLL(library_path, mode=load_mode)
 ```
 - Uses lazy binding when loading the library with `dlopen()`
+- **CRITICAL**: Must use `os.RTLD_LAZY`, not a hardcoded `0x00001` integer
+- `os.RTLD_LAZY` is the actual OS constant that dlopen() understands
 - Symbols are only resolved when actually called
 - Since UI code is never called, undefined symbols never cause errors
 - Standard Unix/Linux practice for plugins with optional dependencies
+
+**Common Mistake**: Using `RTLD_LAZY = 0x00001` as a literal integer doesn't work! The `mode` parameter must be the actual OS constant from the `os` module. ctypes doesn't have `RTLD_LAZY` - it's in the `os` module.
 
 **Why Both Are Needed**:
 - `--unresolved-symbols=ignore-all`: Prevents linker from failing at **build time**
