@@ -26,10 +26,10 @@ The solution creates a minimal wrapper around Mixxx's existing analyzer classes:
          │
 ┌────────▼──────────────┐
 │  libmixxx_analysis.so │  (Shared Library)
-│  - C API              │
-│  - AnalyzerBeats      │
-│  - AnalyzerKey        │
-│  - AnalyzerGain       │
+│  - C API (minimal Qt) │
+│  - AnalyzerBeats      │  (Qt-dependent)
+│  - AnalyzerKey        │  (Qt-dependent)
+│  - AnalyzerGain       │  (Qt-dependent)
 └───────────────────────┘
 ```
 
@@ -40,17 +40,24 @@ The solution creates a minimal wrapper around Mixxx's existing analyzer classes:
    - Simple, stable ABI that works with any programming language
    - Opaque handle pattern for context management
 
-2. **Minimal Dependencies**
-   - Reuses existing Mixxx analyzer code
-   - No Qt Widgets or database dependencies
-   - Only requires Qt Core and audio codec libraries
+2. **Minimal Qt Usage in Wrapper**
+   - Wrapper layer uses minimal Qt (only QString where required by Mixxx APIs)
+   - No explicit QCoreApplication initialization
+   - Standard C++ logging (std::cerr) instead of qWarning()
+   - Qt initialization happens automatically in underlying libraries
 
-3. **Python Wrapper Using ctypes**
+3. **Core Mixxx Libraries Are Qt-Dependent**
+   - Track, UserSettings, and analyzer classes heavily use Qt
+   - Complete Qt removal would require rewriting large portions of Mixxx core
+   - Pragmatic approach: minimize Qt in wrapper, accept it in core
+
+4. **Python Wrapper Using ctypes**
    - No compilation required for Python users
    - Pure Python, works with any Python 3.x
    - Automatic library discovery
+   - Uses RTLD_LAZY | RTLD_GLOBAL for flexible symbol resolution
 
-4. **Thread-Safe Design**
+5. **Thread-Safe Design**
    - Each analyzer instance is independent
    - Multiple analyzers can run in parallel
    - Suitable for batch processing
@@ -61,7 +68,7 @@ The solution creates a minimal wrapper around Mixxx's existing analyzer classes:
 
 1. **Core Library**
    - `src/analysis_lib/mixxx_analysis.h` - C API header (85 lines)
-   - `src/analysis_lib/mixxx_analysis.cpp` - Implementation (299 lines)
+   - `src/analysis_lib/mixxx_analysis.cpp` - Implementation with minimal Qt (299 lines)
 
 2. **Python Wrapper**
    - `src/analysis_lib/mixxx_analysis.py` - Python wrapper (215 lines)
@@ -127,6 +134,33 @@ with MixxxAnalyzer() as analyzer:
     print(f"Key: {result['key_name']}")
     print(f"Gain: {result['replay_gain_db']} dB")
 ```
+
+### Qt Dependency Management
+
+**Wrapper Layer** (minimal Qt usage):
+- Removed explicit `QCoreApplication` initialization
+- Removed `qWarning()` - uses `std::cerr` instead
+- Uses `const char*` instead of `QString` for key strings
+- Only includes `<QString>` where required by Mixxx APIs
+- Qt Core no longer explicitly linked (comes transitively from mixxx-lib)
+
+**Core Layer** (Qt-dependent - unavoidable):
+- `Track::newTemporary()` requires QString parameter
+- `UserSettings` is a wrapper around QSettings
+- All analyzer classes (AnalyzerBeats, AnalyzerKey, AnalyzerGain) use Qt
+- Audio source APIs use Qt types
+- Complete Qt removal would require rewriting large portions of Mixxx core
+
+**Qt Initialization**:
+- No explicit QCoreApplication creation in wrapper
+- Qt initializes automatically when underlying Mixxx components are first used
+- This happens transparently when UserSettings or Track objects are created
+
+**Pragmatic Approach**:
+- Minimize Qt in wrapper layer (what we control)
+- Accept Qt in core libraries (changing them is out of scope)
+- Clear separation between wrapper (minimal Qt) and core (Qt-dependent)
+- Works reliably via Python ctypes with proper library loading flags
 
 ## Features
 
