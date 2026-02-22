@@ -5473,23 +5473,25 @@ if(BUILD_ANALYSIS_LIB)
   )
   
   # Link against mixxx-lib (which includes Qt and other dependencies)
-  target_link_libraries(
-    mixxx-analysis
-    PRIVATE
-      mixxx-lib
-  )
-  
-  # Allow undefined symbols since mixxx-lib contains UI code we don't use
-  # The analysis library only uses core analysis functionality
+  # On Linux, link all objects from the static archive to avoid unresolved
+  # symbols from partially linked translation units at runtime.
   if(UNIX AND NOT APPLE)
-    # Linux: Ignore unresolved symbols in the output shared library
-    # This is needed because mixxx-lib contains UI code that we don't use
-    target_link_options(
+    target_link_libraries(
       mixxx-analysis
       PRIVATE
-        "-Wl,--unresolved-symbols=ignore-all"
+        "-Wl,--whole-archive"
+        mixxx-lib
+        "-Wl,--no-whole-archive"
     )
-  elseif(APPLE)
+  else()
+    target_link_libraries(
+      mixxx-analysis
+      PRIVATE
+        mixxx-lib
+    )
+  endif()
+
+  if(APPLE)
     # macOS: Allow undefined symbols
     target_link_options(
       mixxx-analysis
