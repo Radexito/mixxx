@@ -73,9 +73,10 @@ class MixxxAnalyzer:
             # Use RTLD_LAZY to defer symbol resolution until symbols are actually used.
             # This is necessary because mixxx-lib contains UI code that creates undefined
             # symbols, but those code paths are never executed by the analysis library.
-            # RTLD_LAZY = 1 on Linux/Unix (defers symbol resolution)
-            RTLD_LAZY = 0x00001
-            self._lib = ctypes.CDLL(library_path, mode=RTLD_LAZY)
+            # os.RTLD_LAZY defers symbol resolution (Linux/Unix)
+            # On Windows, this flag doesn't exist but undefined symbols are handled differently
+            load_mode = getattr(os, 'RTLD_LAZY', ctypes.DEFAULT_MODE if hasattr(ctypes, 'DEFAULT_MODE') else 0)
+            self._lib = ctypes.CDLL(library_path, mode=load_mode)
         except OSError as e:
             # Provide a helpful error message with build instructions
             error_msg = [
