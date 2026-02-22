@@ -5472,12 +5472,11 @@ if(BUILD_ANALYSIS_LIB)
       SOVERSION ${PROJECT_VERSION_MAJOR}
   )
   
-  # Link against mixxx-lib and its dependencies
+  # Link against mixxx-lib (which includes Qt and other dependencies)
   target_link_libraries(
     mixxx-analysis
     PRIVATE
       mixxx-lib
-      Qt${QT_VERSION_MAJOR}::Core
   )
   
   # Allow undefined symbols since mixxx-lib contains UI code we don't use

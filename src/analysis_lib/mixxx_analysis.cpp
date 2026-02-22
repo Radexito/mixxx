@@ -4,13 +4,11 @@
 
 #include "mixxx_analysis.h"
 
-#include <QCoreApplication>
-#include <QDebug>
-#include <QSettings>
 #include <QString>
 #include <memory>
 #include <cstring>
 #include <cmath>
+#include <iostream>
 
 #include "analyzer/analyzerbeats.h"
 #include "analyzer/analyzergain.h"
@@ -69,7 +67,7 @@ int chromaticKeyToInt(mixxx::track::io::key::ChromaticKey key) {
 
 // Convert chromatic key to readable string
 void chromaticKeyToString(mixxx::track::io::key::ChromaticKey key, char* buffer, size_t bufferSize) {
-    QString keyText;
+    const char* keyText;
     
     switch (key) {
         case mixxx::track::io::key::C_MAJOR: keyText = "C"; break;
@@ -99,7 +97,7 @@ void chromaticKeyToString(mixxx::track::io::key::ChromaticKey key, char* buffer,
         default: keyText = "Unknown"; break;
     }
     
-    strncpy(buffer, keyText.toUtf8().constData(), bufferSize - 1);
+    strncpy(buffer, keyText, bufferSize - 1);
     buffer[bufferSize - 1] = '\0';
 }
 
@@ -109,20 +107,17 @@ extern "C" {
 
 MixxxAnalyzerHandle mixxx_analyzer_create() {
     try {
-        // Initialize Qt application if not already initialized
-        if (!QCoreApplication::instance()) {
-            static int argc = 1;
-            static char* argv[] = {const_cast<char*>("mixxx_analysis_lib")};
-            new QCoreApplication(argc, argv);
-        }
+        // Note: Qt is initialized automatically by the underlying Mixxx libraries
+        // when needed (UserSettings, Track, etc.). No explicit QCoreApplication
+        // initialization is required here.
         
         auto* context = new AnalyzerContext();
         return static_cast<MixxxAnalyzerHandle>(context);
     } catch (const std::exception& e) {
-        qWarning() << "Failed to create analyzer context:" << e.what();
+        std::cerr << "Failed to create analyzer context: " << e.what() << std::endl;
         return nullptr;
     } catch (...) {
-        qWarning() << "Failed to create analyzer context: unknown error";
+        std::cerr << "Failed to create analyzer context: unknown error" << std::endl;
         return nullptr;
     }
 }
