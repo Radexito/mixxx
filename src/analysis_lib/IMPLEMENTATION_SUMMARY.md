@@ -218,25 +218,34 @@ target_link_options(mixxx-analysis PRIVATE "-Wl,--unresolved-symbols=ignore-all"
 ```python
 import os
 
-# Use the actual OS constant - not a hardcoded integer!
-load_mode = getattr(os, 'RTLD_LAZY', 0)  # Falls back to 0 on Windows
+# Use RTLD_LAZY | RTLD_GLOBAL - both are needed!
+# Must use actual OS constants - not hardcoded integers!
+lazy_mode = getattr(os, 'RTLD_LAZY', 0)
+global_mode = getattr(os, 'RTLD_GLOBAL', 0)
+load_mode = lazy_mode | global_mode if lazy_mode else 0
 self._lib = ctypes.CDLL(library_path, mode=load_mode)
 ```
-- Uses lazy binding when loading the library with `dlopen()`
-- **CRITICAL**: Must use `os.RTLD_LAZY`, not a hardcoded `0x00001` integer
-- `os.RTLD_LAZY` is the actual OS constant that dlopen() understands
-- Symbols are only resolved when actually called
-- Since UI code is never called, undefined symbols never cause errors
-- Standard Unix/Linux practice for plugins with optional dependencies
+- Uses `RTLD_LAZY | RTLD_GLOBAL` for flexible symbol resolution
+- **RTLD_LAZY**: Defers symbol resolution until first use
+- **RTLD_GLOBAL**: Makes symbols globally available for resolution
+- **CRITICAL**: Must use `os.RTLD_LAZY` and `os.RTLD_GLOBAL`, not hardcoded integers
+- The combination is standard for loading libraries with optional dependencies
+- Used by NumPy, SciPy, and other scientific Python packages
 
 **Common Mistake**: Using `RTLD_LAZY = 0x00001` as a literal integer doesn't work! The `mode` parameter must be the actual OS constant from the `os` module. ctypes doesn't have `RTLD_LAZY` - it's in the `os` module.
 
-**Why Both Are Needed**:
+**Why Both Flags Are Needed**:
+- **RTLD_LAZY**: Defers symbol resolution - undefined symbols only fail if called
+- **RTLD_GLOBAL**: Provides additional flexibility for symbol resolution
+- **Together**: Standard pattern for libraries with undefined symbols
+
+**Why Both Fixes Are Needed**:
 - `--unresolved-symbols=ignore-all`: Prevents linker from failing at **build time**
-- `RTLD_LAZY`: Prevents dlopen() from failing at **runtime**
+- `RTLD_LAZY | RTLD_GLOBAL`: Prevents dlopen() from failing at **runtime**
 
 From `man dlopen`:
 > `RTLD_LAZY`: Perform lazy binding. Only resolve symbols as the code that references them is executed.
+> `RTLD_GLOBAL`: The symbols defined by this shared object will be made available for symbol resolution of subsequently loaded shared objects.
 
 This is safe because:
 - The API surface is controlled (only analysis functions exposed)
