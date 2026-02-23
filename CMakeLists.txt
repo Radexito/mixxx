@@ -2449,24 +2449,11 @@ target_link_libraries(mixxx PRIVATE mixxx-lib mixxx-gitinfostore)
 # mixxx-cli: CLI entrypoint sharing Mixxx engine sources
 # ============================================================================
 
-# Reuse the exact same sources compiled into mixxx-lib
-get_target_property(MIXXX_LIB_SOURCES mixxx-lib SOURCES)
-
 add_executable(mixxx-cli
     src/cli/main.cpp
-    ${MIXXX_LIB_SOURCES}
 )
 
-# Reuse all compile definitions / include dirs from mixxx-lib
 target_link_libraries(mixxx-cli PRIVATE mixxx-lib)
-
-target_include_directories(mixxx-cli PRIVATE
-    $<TARGET_PROPERTY:mixxx-lib,INCLUDE_DIRECTORIES>
-)
-
-target_compile_definitions(mixxx-cli PRIVATE
-    $<TARGET_PROPERTY:mixxx-lib,COMPILE_DEFINITIONS>
-)
 
 # Needed for QObject classes even without GUI usage
 set_target_properties(mixxx-cli PROPERTIES
