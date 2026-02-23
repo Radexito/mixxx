@@ -2445,7 +2445,41 @@ endif()
 
 set_target_properties(mixxx-lib PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY}")
 target_link_libraries(mixxx PRIVATE mixxx-lib mixxx-gitinfostore)
+# ============================================================================
+# mixxx-cli: CLI entrypoint sharing Mixxx engine sources
+# ============================================================================
 
+# Reuse the exact same sources compiled into mixxx-lib
+get_target_property(MIXXX_LIB_SOURCES mixxx-lib SOURCES)
+
+add_executable(mixxx-cli
+    src/cli/main.cpp
+    ${MIXXX_LIB_SOURCES}
+)
+
+# Reuse all compile definitions / include dirs from mixxx-lib
+target_link_libraries(mixxx-cli PRIVATE mixxx-lib)
+
+target_include_directories(mixxx-cli PRIVATE
+    $<TARGET_PROPERTY:mixxx-lib,INCLUDE_DIRECTORIES>
+)
+
+target_compile_definitions(mixxx-cli PRIVATE
+    $<TARGET_PROPERTY:mixxx-lib,COMPILE_DEFINITIONS>
+)
+
+# Needed for QObject classes even without GUI usage
+set_target_properties(mixxx-cli PROPERTIES
+    AUTOMOC ON
+    AUTORCC ON
+    AUTOUIC ON
+)
+
+install(TARGETS mixxx-cli
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+# ============================================================================
 #
 # Installation and Packaging
 #
@@ -5437,3 +5471,4 @@ if(APPLE AND MACOS_BUNDLE)
   )
   install(SCRIPT "${CMAKE_CURRENT_BINARY_DIR}/BundleInstall.cmake")
 endif()
+
