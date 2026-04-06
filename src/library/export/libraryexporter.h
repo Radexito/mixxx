@@ -12,13 +12,15 @@
 class TrackCollectionManager;
 namespace mixxx {
 struct EnginePrimeExportRequest;
-} // Namespace mixxx
+struct RekordboxExportRequest;
+} // namespace mixxx
 
 namespace mixxx {
 
 /// The LibraryExporter class allows an export of the Mixxx library to be
 /// initiated.  It can present a dialog that gathers information from the user
 /// about the nature of the export, and schedules a job to perform the export.
+/// Supports both Engine DJ (Engine Library) and Pioneer Rekordbox USB formats.
 class LibraryExporter : public QWidget {
     Q_OBJECT
   public:
@@ -46,6 +48,7 @@ class LibraryExporter : public QWidget {
 
   private slots:
     void beginEnginePrimeExport(QSharedPointer<mixxx::EnginePrimeExportRequest> pRequest);
+    void beginRekordboxExport(QSharedPointer<mixxx::RekordboxExportRequest> pRequest);
 
   private:
     void requestExportWithOptionalInitialSelection(

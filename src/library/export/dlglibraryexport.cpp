@@ -9,6 +9,7 @@
 #include <djinterop/djinterop.hpp>
 
 #include "library/export/engineprimeexportrequest.h"
+#include "library/export/rekordboxexportrequest.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
 #include "library/trackset/crate/crate.h"
@@ -60,6 +61,18 @@ DlgLibraryExport::DlgLibraryExport(
         : QDialog(parent),
           m_pConfig{pConfig},
           m_pTrackCollectionManager{pTrackCollectionManager} {
+    // Format selector — Engine DJ or Pioneer Rekordbox USB.
+    m_pFormatCombo = make_parented<QComboBox>(this);
+    //: "Engine DJ" must not be translated
+    m_pFormatCombo->addItem(tr("Engine DJ"), QVariant{kFormatEnginePrime});
+    //: "Pioneer Rekordbox" must not be translated
+    m_pFormatCombo->addItem(tr("Pioneer Rekordbox USB (CDJ-3000 / NXS2 / CDJ-900)"),
+            QVariant{kFormatRekordbox});
+    connect(m_pFormatCombo,
+            QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this,
+            &DlgLibraryExport::onFormatChanged);
+
     // Selectable list of crates from the Mixxx library.
     auto pCratesLabel = make_parented<QLabel>(tr("Crates"), this);
     m_pCratesList = make_parented<QListWidget>(this);
@@ -86,6 +99,7 @@ DlgLibraryExport::DlgLibraryExport(
 
     m_pExportDirectoryTextField->setText(lastExportDirectory);
 
+    m_pVersionLabel = make_parented<QLabel>(tr("Database version"), this);
     m_pVersionCombo = make_parented<QComboBox>(this);
     m_pVersionCombo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
 
@@ -118,8 +132,9 @@ DlgLibraryExport::DlgLibraryExport(
     pExportDirLayout->addWidget(pExportDirBrowseButton);
 
     auto pFormLayout = std::make_unique<QFormLayout>();
+    pFormLayout->addRow(tr("Export format"), m_pFormatCombo);
     pFormLayout->addRow(tr("Export directory"), pExportDirLayout.release());
-    pFormLayout->addRow(tr("Database version"), m_pVersionCombo);
+    pFormLayout->addRow(m_pVersionLabel, m_pVersionCombo);
     pFormLayout->addRow(m_pExistingDatabaseLabel);
 
     // Buttons to begin the export or cancel.
@@ -164,8 +179,7 @@ DlgLibraryExport::DlgLibraryExport(
     pLayout->addLayout(pButtonBarLayout.release(), 4, 0, 1, 3);
 
     setLayout(pLayout);
-    //: "Engine DJ" must not be translated
-    setWindowTitle(tr("Export Library to Engine DJ"));
+    setWindowTitle(tr("Export Library"));
 
     show();
     raise();
@@ -238,6 +252,22 @@ void DlgLibraryExport::browseExportDirectory() {
     checkExistingDatabase();
 }
 
+void DlgLibraryExport::onFormatChanged(int /*index*/) {
+    const bool isEnginePrime =
+            m_pFormatCombo->currentData().toInt() == kFormatEnginePrime;
+    m_pVersionLabel->setVisible(isEnginePrime);
+    m_pVersionCombo->setVisible(isEnginePrime);
+    m_pExistingDatabaseLabel->setVisible(isEnginePrime);
+    if (isEnginePrime) {
+        checkExistingDatabase();
+        //: "Engine DJ" must not be translated
+        setWindowTitle(tr("Export Library to Engine DJ"));
+    } else {
+        //: "Pioneer Rekordbox" must not be translated
+        setWindowTitle(tr("Export Library to Pioneer Rekordbox USB"));
+    }
+}
+
 void DlgLibraryExport::exportRequested() {
     // Check a base export directory has been chosen
     if (m_pExportDirectoryTextField->text().trimmed().isEmpty()) {
@@ -250,6 +280,29 @@ void DlgLibraryExport::exportRequested() {
         return;
     }
 
+    const int format = m_pFormatCombo->currentData().toInt();
+
+    if (format == kFormatRekordbox) {
+        // Pioneer Rekordbox USB export
+        auto pRequest = QSharedPointer<RekordboxExportRequest>::create();
+        pRequest->usbRootDir.setPath(m_pExportDirectoryTextField->text());
+        pRequest->musicSubDir = kDefaultMixxxExportDirName;
+        if (m_pCratesList->isEnabled()) {
+            for (auto* pItem : m_pCratesList->selectedItems()) {
+                pRequest->crateIdsToExport.insert(CrateId{pItem->data(Qt::UserRole)});
+            }
+        }
+        if (m_pPlaylistsList->isEnabled()) {
+            for (auto* pItem : m_pPlaylistsList->selectedItems()) {
+                pRequest->playlistIdsToExport.insert(pItem->data(Qt::UserRole).toInt());
+            }
+        }
+        emit startRekordboxExport(pRequest);
+        accept();
+        return;
+    }
+
+    // Engine DJ / Engine Prime export
     QDir baseExportDirectory{m_pExportDirectoryTextField->text()};
     const auto databaseDirectory = baseExportDirectory.filePath(
             e::default_database_dir_name);

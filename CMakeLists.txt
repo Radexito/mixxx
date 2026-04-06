@@ -3376,6 +3376,7 @@ if(ENGINEPRIME)
       src/library/export/dlglibraryexport.cpp
       src/library/export/engineprimeexportjob.cpp
       src/library/export/libraryexporter.cpp
+      src/library/export/rekordboxexportjob.cpp
   )
   target_compile_definitions(mixxx-lib PUBLIC __ENGINEPRIME__)
 endif()

@@ -4,6 +4,8 @@
 
 #include "library/export/engineprimeexportjob.h"
 #include "library/export/engineprimeexportrequest.h"
+#include "library/export/rekordboxexportjob.h"
+#include "library/export/rekordboxexportrequest.h"
 #include "moc_libraryexporter.cpp"
 #include "util/parented_ptr.h"
 
@@ -27,6 +29,10 @@ void LibraryExporter::requestExportWithOptionalInitialSelection(
                 &DlgLibraryExport::startEnginePrimeExport,
                 this,
                 &LibraryExporter::beginEnginePrimeExport);
+        connect(m_pDialog.get(),
+                &DlgLibraryExport::startRekordboxExport,
+                this,
+                &LibraryExporter::beginRekordboxExport);
     } else {
         m_pDialog->show();
         m_pDialog->raise();
@@ -86,6 +92,50 @@ void LibraryExporter::beginEnginePrimeExport(
             &QProgressDialog::canceled,
             pJobThread,
             &EnginePrimeExportJob::slotCancel);
+
+    pJobThread->start();
+}
+
+void LibraryExporter::beginRekordboxExport(
+        QSharedPointer<RekordboxExportRequest> pRequest) {
+    auto pJobThread = make_parented<RekordboxExportJob>(
+            this,
+            m_pTrackCollectionManager,
+            pRequest);
+    connect(pJobThread, &RekordboxExportJob::finished, pJobThread, &QObject::deleteLater);
+
+    connect(pJobThread,
+            &RekordboxExportJob::completed,
+            this,
+            [](int numTracks) {
+                QMessageBox::information(nullptr,
+                        tr("Rekordbox Export Completed"),
+                        QString{tr("Exported %1 track(s) to Pioneer USB format.")}.arg(numTracks));
+            });
+    connect(pJobThread,
+            &RekordboxExportJob::failed,
+            this,
+            [](const QString& message) {
+                QMessageBox::critical(nullptr, tr("Rekordbox Export Failed"), message);
+            });
+
+    auto pProgressDlg = make_parented<QProgressDialog>(this);
+    //: "Pioneer Rekordbox" must not be translated
+    pProgressDlg->setLabelText(tr("Exporting to Pioneer Rekordbox USB..."));
+    pProgressDlg->setMinimumDuration(0);
+    connect(pJobThread,
+            &RekordboxExportJob::jobMaximum,
+            pProgressDlg,
+            &QProgressDialog::setMaximum);
+    connect(pJobThread,
+            &RekordboxExportJob::jobProgress,
+            pProgressDlg,
+            &QProgressDialog::setValue);
+    connect(pJobThread, &RekordboxExportJob::finished, pProgressDlg, &QObject::deleteLater);
+    connect(pProgressDlg,
+            &QProgressDialog::canceled,
+            pJobThread,
+            &RekordboxExportJob::slotCancel);
 
     pJobThread->start();
 }

@@ -18,13 +18,13 @@ class CrateId;
 namespace mixxx {
 
 struct EnginePrimeExportRequest;
+struct RekordboxExportRequest;
 
 /// The DlgLibraryExport class is a UI window that gathers information from
 /// the user about how they would like to export the Mixxx library.
 ///
-/// Currently, the dialog only supports exporting to the Engine Library format,
-/// but in future it is expected that this dialog could be expanded to include
-/// other formats, and generate different export signals accordingly.
+/// Supports exporting to Engine DJ (Engine Library) and Pioneer Rekordbox
+/// USB format (CDJ-3000 / CDJ-NXS2 / CDJ-900 compatible).
 class DlgLibraryExport : public QDialog {
     Q_OBJECT
 
@@ -43,14 +43,16 @@ class DlgLibraryExport : public QDialog {
     void refresh();
 
   signals:
-    /// The startEnginePrimeExport signal is emitted when sufficient information
-    /// has been gathered from the user to kick off an Engine DJ export, and
-    /// details of the request are provided as part of the signal.
+    /// Emitted when the user has configured an Engine DJ export.
     void startEnginePrimeExport(QSharedPointer<mixxx::EnginePrimeExportRequest>);
+
+    /// Emitted when the user has configured a Pioneer Rekordbox USB export.
+    void startRekordboxExport(QSharedPointer<mixxx::RekordboxExportRequest>);
 
   private slots:
     void browseExportDirectory();
     void exportRequested();
+    void onFormatChanged(int index);
 
   private:
     void checkExistingDatabase();
@@ -58,13 +60,18 @@ class DlgLibraryExport : public QDialog {
     UserSettingsPointer m_pConfig;
     TrackCollectionManager* m_pTrackCollectionManager;
 
+    parented_ptr<QComboBox> m_pFormatCombo;
     parented_ptr<QRadioButton> m_pWholeLibraryRadio;
     parented_ptr<QRadioButton> m_pCratesAndPlaylistsRadio;
     parented_ptr<QListWidget> m_pCratesList;
     parented_ptr<QListWidget> m_pPlaylistsList;
     parented_ptr<QLineEdit> m_pExportDirectoryTextField;
     parented_ptr<QComboBox> m_pVersionCombo;
+    parented_ptr<QLabel> m_pVersionLabel;
     parented_ptr<QLabel> m_pExistingDatabaseLabel;
+
+    static constexpr int kFormatEnginePrime = 0;
+    static constexpr int kFormatRekordbox = 1;
 };
 
 } // namespace mixxx
