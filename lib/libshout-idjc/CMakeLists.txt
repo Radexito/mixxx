@@ -27,6 +27,10 @@ add_library(${PROJECT_NAME} STATIC
     src/tls.c
     src/util.c
 )
+
+# Enable Position Independent Code for shout_mixxx when linking into shared libraries
+set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 target_include_directories(${PROJECT_NAME} PRIVATE include src src/common)
 
 target_compile_definitions(${PROJECT_NAME}

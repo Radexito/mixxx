@@ -1814,6 +1814,10 @@ add_library(
   src/controllers/scripting/javascriptplayerproxy.cpp
   src/controllers/scripting/javascriptplayerproxy.h
 )
+
+# Enable Position Independent Code for mixxx-lib when linking into shared libraries
+set_target_properties(mixxx-lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 set(MIXXX_COMMON_PRECOMPILED_HEADER src/util/assert.h)
 set(
   MIXXX_LIB_PRECOMPILED_HEADER
@@ -3312,6 +3316,7 @@ if(ENGINEPRIME)
       CMAKE_ARGS
         -DBUILD_SHARED_LIBS=OFF -DCMAKE_SKIP_INSTALL_ALL_DEPENDENCY=ON
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
         -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
         -DCMAKE_PREFIX_PATH=${PIPE_DELIMITED_CMAKE_PREFIX_PATH}
         -DCMAKE_INSTALL_LIBDIR:PATH=lib
@@ -3817,6 +3822,10 @@ if(QML)
     endforeach()
   endif()
   set_target_properties(mixxx-qml-lib PROPERTIES AUTOMOC ON)
+  
+  # Enable Position Independent Code for mixxx-qml-lib when linking into shared libraries
+  set_target_properties(mixxx-qml-lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+  
   qt_add_qml_module(mixxx-qml-lib
     URI Mixxx
     VERSION 1.0
@@ -4570,6 +4579,9 @@ add_library(
   # lib/qm-dsp/maths/pca/pca.c
   # lib/qm-dsp/thread/Thread.cpp
 )
+
+# Enable Position Independent Code for QueenMaryDsp when linking into shared libraries
+set_target_properties(QueenMaryDsp PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 target_compile_definitions(QueenMaryDsp PRIVATE kiss_fft_scalar=double)
 if(UNIX)
@@ -5491,4 +5503,74 @@ if(APPLE AND MACOS_BUNDLE)
     @ONLY
   )
   install(SCRIPT "${CMAKE_CURRENT_BINARY_DIR}/BundleInstall.cmake")
+endif()
+
+# ==================================================================================
+# Mixxx Analysis Library (Python-accessible shared library)
+# ==================================================================================
+option(BUILD_ANALYSIS_LIB "Build the Mixxx Analysis Library for Python" ON)
+
+if(BUILD_ANALYSIS_LIB)
+  add_library(
+    mixxx-analysis
+    SHARED
+    src/analysis_lib/mixxx_analysis.cpp
+  )
+  
+  # Set the public header
+  set_target_properties(
+    mixxx-analysis
+    PROPERTIES
+      PUBLIC_HEADER src/analysis_lib/mixxx_analysis.h
+      OUTPUT_NAME "mixxx_analysis"
+      VERSION ${PROJECT_VERSION}
+      SOVERSION ${PROJECT_VERSION_MAJOR}
+  )
+  
+  # Link against mixxx-lib (which includes Qt and other dependencies)
+  target_link_libraries(
+    mixxx-analysis
+    PRIVATE
+      mixxx-lib
+  )
+  
+  # Allow undefined symbols since mixxx-lib contains UI code we don't use
+  # The analysis library only uses core analysis functionality
+  if(UNIX AND NOT APPLE)
+    # Linux: Ignore unresolved symbols in the output shared library
+    # This is needed because mixxx-lib contains UI code that we don't use
+    target_link_options(
+      mixxx-analysis
+      PRIVATE
+        "-Wl,--unresolved-symbols=ignore-all"
+    )
+  elseif(APPLE)
+    # macOS: Allow undefined symbols
+    target_link_options(
+      mixxx-analysis
+      PRIVATE
+        "-Wl,-undefined,dynamic_lookup"
+    )
+  endif()
+  
+  # Include directories
+  target_include_directories(
+    mixxx-analysis
+    PUBLIC
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/analysis_lib>
+      $<INSTALL_INTERFACE:include>
+    PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/src
+  )
+  
+  # Install library and headers
+  install(
+    TARGETS mixxx-analysis
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mixxx
+  )
+  
+  message(STATUS "Mixxx Analysis Library will be built")
 endif()
