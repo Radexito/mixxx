@@ -72,7 +72,8 @@ class RekordboxExportJob : public QThread {
     bool writePdb(
             const QString& pdbPath,
             const QList<TrackPointer>& tracks,
-            const QStringList& usbRelativePaths);
+            const QStringList& usbRelativePaths,
+            const QStringList& anlzFolderPaths);
 
     TrackCollectionManager* m_pTrackCollectionManager;
     QSharedPointer<RekordboxExportRequest> m_pRequest;

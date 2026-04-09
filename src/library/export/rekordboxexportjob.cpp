@@ -7,9 +7,12 @@
 #include <QMetaObject>
 #include <QtEndian>
 
+#include "audio/frame.h"
 #include "library/export/rekordboxexportrequest.h"
+#include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
 #include "library/trackset/crate/crate.h"
+#include "library/trackset/crate/cratestorage.h"
 #include "moc_rekordboxexportjob.cpp"
 #include "track/track.h"
 #include "waveform/waveformfactory.h"
@@ -444,21 +447,24 @@ QList<BeatEntry> buildBeatEntries(TrackPointer pTrack) {
 
     const double bpm = pTrack->getBpm();
     const quint16 tempoRaw = static_cast<quint16>(qRound(bpm * 100.0));
-
-    mixxx::audio::FramePos pos = pBeats->firstBeat();
     const double sampleRate = pTrack->getSampleRate();
+    const double durationFrames = pTrack->getDuration() * sampleRate;
 
     quint16 beatNum = 1;
-    while (pos.isValid()) {
+    for (auto it = pBeats->iteratorFrom(audio::kStartFramePos);
+            it != pBeats->cend();
+            ++it) {
+        const audio::FramePos pos = *it;
+        if (pos.value() > durationFrames) {
+            break;
+        }
         const double timeMs = (pos.value() / sampleRate) * 1000.0;
         BeatEntry e;
         e.beatNumber = beatNum;
         e.tempo = tempoRaw;
         e.timeMs = static_cast<quint32>(qRound(timeMs));
         entries.append(e);
-
-        pos = pBeats->nextBeat(pos);
-        beatNum = (beatNum % 4) + 1;
+        beatNum = static_cast<quint16>((beatNum % 4) + 1);
     }
     return entries;
 }
@@ -486,7 +492,7 @@ QByteArray downsampleMono(TrackPointer pTrack, int targetCols) {
         // Mixxx waveform stores [left_low, left_mid, left_high, right_low...] per frame
         // Use channel 0 (left) all, take the max of low/mid/high as the height.
         const WaveformData& d = pWaveform->get(srcIdx);
-        int height = qMax({(int)d.filtered.low, (int)d.filtered.mid, (int)d.filtered.high});
+        int height = qMax((int)d.filtered.low, qMax((int)d.filtered.mid, (int)d.filtered.high));
         height = qMin(height, 31);
         result[i] = static_cast<char>(height & 0x1F);
     }
@@ -513,9 +519,9 @@ QList<quint16> buildColourScrollColumns(TrackPointer pTrack, int numCols) {
         quint16 red   = qMin((int)d.filtered.high, 7); // treble → red
         quint16 green = qMin((int)d.filtered.mid,  7); // mid    → green
         quint16 blue  = qMin((int)d.filtered.low,  7); // bass   → blue
-        quint16 height = qMin(
-                qMax({(int)d.filtered.low, (int)d.filtered.mid, (int)d.filtered.high}),
-                31);
+        quint16 height = static_cast<quint16>(qMin(
+                qMax((int)d.filtered.low, qMax((int)d.filtered.mid, (int)d.filtered.high)),
+                31));
 
         quint16 col = static_cast<quint16>(
                 (red << 13) | (green << 10) | (blue << 7) | (height << 2));
@@ -874,9 +880,10 @@ void RekordboxExportJob::run() {
     const QString usbRoot = m_pRequest->usbRootDir.absolutePath();
     const QString pioneerDir = usbRoot + QStringLiteral("/PIONEER");
     const QString anlzRoot = pioneerDir + QStringLiteral("/USBANLZ");
-    const QString musicRoot = m_pRequest->musicSubDir.isEmpty()
-            ? usbRoot + QStringLiteral("/music")
-            : usbRoot + QStringLiteral("/") + m_pRequest->musicSubDir;
+    const QString musicRoot = usbRoot + QStringLiteral("/") +
+            (m_pRequest->musicSubDir.isEmpty()
+                    ? QStringLiteral("music")
+                    : m_pRequest->musicSubDir);
 
     QDir dir;
     if (!dir.mkpath(anlzRoot) || !dir.mkpath(musicRoot)) {
@@ -964,14 +971,13 @@ void RekordboxExportJob::slotLoadTracksFromDb() {
         }
     } else {
         for (const CrateId& crateId : m_pRequest->crateIdsToExport) {
-            CrateTrackSelectResult res = pColl->crates().selectCrateTracksSorted(crateId);
-            TrackId tid;
-            while (res.populateNext(&tid, nullptr)) {
-                trackIds.insert(tid);
+            auto result = pColl->crates().selectCrateTracksSorted(crateId);
+            while (result.next()) {
+                trackIds.insert(result.trackId());
             }
         }
         for (int plId : m_pRequest->playlistIdsToExport) {
-            QList<TrackId> plTracks = pColl->getPlaylistDAO().getTrackIds(plId);
+            const QList<TrackId> plTracks = pColl->getPlaylistDAO().getTrackIds(plId);
             for (const TrackId& tid : plTracks) {
                 trackIds.insert(tid);
             }
